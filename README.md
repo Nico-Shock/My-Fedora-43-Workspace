@@ -296,7 +296,7 @@ https://fonts.google.com/specimen/Inter
 
 ### Mouse Cursor:
 
-- Bibata Cursor: https://github.com/ful1e5/Bibata_Cursor/releases
+- `yay -S breeze-snow-cursor-theme`
 
 ### Icons:
 
