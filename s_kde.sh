@@ -195,7 +195,6 @@ show_progress "Finalizing configuration"
 run_with_progress 8 sudo dracut -f --regenerate-all
 run_with_progress 4 sudo grub2-mkconfig -o /boot/grub2/grub.cfg
 
-# Stop spinner immediately after last step
 if [[ -n "$SPINNER_PID" ]]; then
     kill $SPINNER_PID 2>/dev/null
     wait $SPINNER_PID 2>/dev/null
