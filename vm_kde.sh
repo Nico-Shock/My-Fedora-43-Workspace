@@ -1,6 +1,6 @@
 #!/bin/bash
 
-TOTAL_STEPS=15
+TOTAL_STEPS=13
 CURRENT_STEP=0
 CURRENT_PROCESS_STEPS=1
 CURRENT_PROCESS_STEP=0
@@ -71,6 +71,10 @@ run_with_progress() {
     eval "$cmd_to_run" > "$temp_log" 2>&1
     local exit_status=$?
     wait $sim_pid
+    
+    # Log everything to file for debugging
+    cat "$temp_log" >> "$LOG_FILE"
+    
     if [[ $exit_status -ne 0 ]]; then
         echo "❌ Fehler bei: $cmd_to_run" | tee -a "$LOG_FILE"
         echo "----------------------------------------------------" | tee -a "$LOG_FILE"
@@ -125,9 +129,6 @@ show_progress "Debloating desktop"
 run_with_progress 8 sudo dnf remove -y gnome-contacts gnome-maps mediawriter totem simple-scan gnome-boxes gnome-user-docs rhythmbox evince gnome-photos gnome-documents gnome-initial-setup yelp winhelp32 dosbox winehelp fedora-release-notes gnome-characters gnome-logs fonts-tweak-tool timeshift epiphany gnome-weather cheese pavucontrol qt5-settings
 run_with_progress 2 sudo dnf clean all
 
-show_progress "Installing Firefox ESR"
-run_with_progress 5 sudo dnf install -y firefox-esr
-
 show_progress "Installing Material You Colors"
 run_with_progress 4 sudo dnf install -y pipx gcc python3-devel glib2-devel
 run_with_progress 8 pipx install kde-material-you-colors
@@ -162,13 +163,6 @@ run_with_progress 6 sudo cp Inter_font/Inter-roman/*.ttf /usr/local/share/fonts/
 run_with_progress 2 fc-cache -f -v
 run_with_progress 1 rm -rf Inter.zip Inter_font
 
-show_progress "Installing Bibata Cursor"
-cd /tmp
-run_with_progress 5 wget -q --show-progress "https://github.com/ful1e5/Bibata_Cursor/releases/download/v2.0.7/Bibata-Modern-Classic.tar.xz" -O Bibata-Modern-Classic.tar.xz
-run_with_progress 3 sudo tar -xf Bibata-Modern-Classic.tar.xz -C /usr/share/icons/
-run_with_progress 2 sudo gtk-update-icon-cache -f -t /usr/share/icons/Bibata-Modern-Classic
-run_with_progress 1 rm Bibata-Modern-Classic.tar.xz
-
 show_progress "Setting up Zsh and fonts"
 run_with_progress 4 sudo dnf install -y zsh dejavu-sans-mono-fonts powerline-fonts
 cd $HOME
@@ -179,7 +173,7 @@ run_with_progress 2 chsh -s $(which zsh)
 cd /tmp
 run_with_progress 5 git clone --depth 1 https://github.com/ryanoasis/nerd-fonts.git
 cd nerd-fonts
-run_with_progress 10 ./install.sh
+run_with_progress 6 ./install.sh JetBrainsMono Hack FiraCode
 cd /tmp
 run_with_progress 1 sudo rm -rf nerd-fonts
 
@@ -187,6 +181,7 @@ show_progress "Finalizing configuration"
 run_with_progress 8 sudo dracut -f --regenerate-all
 run_with_progress 4 sudo grub2-mkconfig -o /boot/grub2/grub.cfg
 
+# Stop spinner immediately after last step
 if [[ -n "$SPINNER_PID" ]]; then
     kill $SPINNER_PID 2>/dev/null
     wait $SPINNER_PID 2>/dev/null
