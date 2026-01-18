@@ -72,7 +72,6 @@ run_with_progress() {
     local exit_status=$?
     wait $sim_pid
     
-    # Log everything to file for debugging
     cat "$temp_log" >> "$LOG_FILE"
     
     if [[ $exit_status -ne 0 ]]; then
@@ -181,7 +180,6 @@ show_progress "Finalizing configuration"
 run_with_progress 8 sudo dracut -f --regenerate-all
 run_with_progress 4 sudo grub2-mkconfig -o /boot/grub2/grub.cfg
 
-# Stop spinner immediately after last step
 if [[ -n "$SPINNER_PID" ]]; then
     kill $SPINNER_PID 2>/dev/null
     wait $SPINNER_PID 2>/dev/null
