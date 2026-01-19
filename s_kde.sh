@@ -1,6 +1,6 @@
 #!/bin/bash
 
-TOTAL_STEPS=15
+TOTAL_STEPS=14
 CURRENT_STEP=0
 CURRENT_PROCESS_STEPS=1
 CURRENT_PROCESS_STEP=0
@@ -72,7 +72,6 @@ run_with_progress() {
     local exit_status=$?
     wait $sim_pid
     
-    # Log everything to file for debugging
     cat "$temp_log" >> "$LOG_FILE"
     
     if [[ $exit_status -ne 0 ]]; then
@@ -105,11 +104,10 @@ show_progress "Installing required tools"
 run_with_progress 3 sudo dnf install -y wget unzip git
 
 show_progress "Optimizing DNF"
-run_with_progress 3 bash -c '
-sudo sed -i "/^max_parallel_downloads=/d" /etc/dnf/dnf.conf
-sudo sed -i "/^fastestmirror=/d" /etc/dnf/dnf.conf
-echo -e "max_parallel_downloads=20\nfastestmirror=True" | sudo tee -a /etc/dnf/dnf.conf
-'
+run_with_progress 2 sudo sed -i "/^max_parallel_downloads=/d" /etc/dnf/dnf.conf
+run_with_progress 2 sudo sed -i "/^fastestmirror=/d" /etc/dnf/dnf.conf
+run_with_progress 2 bash -c 'echo "max_parallel_downloads=20" | sudo tee -a /etc/dnf/dnf.conf'
+run_with_progress 2 bash -c 'echo "fastestmirror=True" | sudo tee -a /etc/dnf/dnf.conf'
 
 show_progress "Installing additional packages"
 run_with_progress 8 sudo dnf install -y flatpak git wget kate thermald ufw fzf python3 python3-pip bluez blueman bluez-libs fastfetch vim
