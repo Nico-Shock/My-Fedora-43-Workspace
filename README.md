@@ -296,7 +296,7 @@ https://fonts.google.com/specimen/Inter
 
 ### Mouse Cursor:
 
-- `yay -S breeze-snow-cursor-theme`
+- `sudo dnf install -y breeze-cursor-theme`
 
 ### Icons:
 
