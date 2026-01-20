@@ -8,10 +8,14 @@ SPINNER_CHARS="⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
 SPINNER_PID=""
 CURRENT_TASK=""
 LOG_FILE="$(dirname "$0")/log.txt"
+KEEPALIVE_PID=""
 
 cleanup() {
     if [[ -n "$SPINNER_PID" ]]; then
         kill $SPINNER_PID 2>/dev/null
+    fi
+    if [[ -n "$KEEPALIVE_PID" ]]; then
+        kill $KEEPALIVE_PID 2>/dev/null
     fi
     printf "\n"
     exit
@@ -48,7 +52,7 @@ show_progress() {
     CURRENT_TASK="$1"
     clear
     echo "╔══════════════════════════════════════════════════════════════╗"
-    echo "║                   Fedora 43 Workspace Setup                    ║"
+    echo "║                  Fedora 43 Workspace Setup                   ║"
     echo "╚══════════════════════════════════════════════════════════════╝"
     echo ""
     printf "📊 Overall Progress: %s/%s\n" "$CURRENT_STEP" "$TOTAL_STEPS"
@@ -85,7 +89,7 @@ run_with_progress() {
 
 clear
 echo "╔══════════════════════════════════════════════════════════════╗"
-echo "║                   Fedora 43 Workspace Setup                    ║"
+echo "║                  Fedora 43 Workspace Setup                   ║"
 echo "╚══════════════════════════════════════════════════════════════╝"
 echo ""
 
@@ -99,6 +103,14 @@ fi
 
 install_nvidia="n"
 > "$LOG_FILE"
+
+sudo -v
+while true; do
+    sudo -n true
+    sleep 60
+    kill -0 "$$" 2>/dev/null || exit
+done &
+KEEPALIVE_PID=$!
 
 show_progress "Installing required tools"
 run_with_progress 3 sudo dnf install -y wget unzip git
@@ -125,41 +137,74 @@ run_with_progress 5 sudo dnf install -y cachyos-settings --allowerasing
 
 show_progress "Debloating desktop"
 run_with_progress 8 sudo dnf remove -y gnome-contacts gnome-maps mediawriter totem simple-scan gnome-boxes gnome-user-docs rhythmbox evince gnome-photos gnome-documents gnome-initial-setup yelp winhelp32 dosbox winehelp fedora-release-notes gnome-characters gnome-logs fonts-tweak-tool timeshift epiphany gnome-weather cheese pavucontrol qt5-settings
-run_with_progress 2 sudo dnf clean all
 
 show_progress "Installing Material You Colors"
-run_with_progress 4 sudo dnf install -y pipx gcc python3-devel glib2-devel
+run_with_progress 4 sudo dnf install -y pipx gcc python3-devel glib2-devel dbus-devel
 run_with_progress 8 pipx install kde-material-you-colors
 run_with_progress 3 pipx inject kde-material-you-colors pywal16
 
 show_progress "Installing Klassy dependencies"
 run_with_progress 3 sudo dnf install -y git cmake extra-cmake-modules gettext
-run_with_progress 10 sudo dnf install -y "cmake(KF5Config)" "cmake(KF5CoreAddons)" "cmake(KF5FrameworkIntegration)" "cmake(KF5GuiAddons)" "cmake(KF5Kirigami2)" "cmake(KF5WindowSystem)" "cmake(KF5I18n)" "cmake(Qt5DBus)" "cmake(Qt5Quick)" "cmake(Qt5Widgets)" "cmake(Qt5X11Extras)" "cmake(KDecoration3)" "cmake(KF6ColorScheme)" "cmake(KF6Config)" "cmake(KF6CoreAddons)" "cmake(KF6FrameworkIntegration)" "cmake(KF6GuiAddons)" "cmake(KF6I18n)" "cmake(KF6KCMUtils)" "cmake(KF6KirigamiPlatform)" "cmake(KF6WindowSystem)" "cmake(Qt6Core)" "cmake(Qt6DBus)" "cmake(Qt6Quick)" "cmake(Qt6Svg)" "cmake(Qt6Widgets)" "cmake(Qt6Xml)"
+run_with_progress 10 sudo dnf install -y \
+    "cmake(KF5Config)" \
+    "cmake(KF5CoreAddons)" \
+    "cmake(KF5FrameworkIntegration)" \
+    "cmake(KF5GuiAddons)" \
+    "cmake(KF5Kirigami2)" \
+    "cmake(KF5WindowSystem)" \
+    "cmake(KF5I18n)" \
+    "cmake(Qt5DBus)" \
+    "cmake(Qt5Quick)" \
+    "cmake(Qt5Widgets)" \
+    "cmake(Qt5X11Extras)" \
+    "cmake(KDecoration3)" \
+    "cmake(KF6ColorScheme)" \
+    "cmake(KF6Config)" \
+    "cmake(KF6CoreAddons)" \
+    "cmake(KF6FrameworkIntegration)" \
+    "cmake(KF6GuiAddons)" \
+    "cmake(KF6I18n)" \
+    "cmake(KF6KCMUtils)" \
+    "cmake(KF6KirigamiPlatform)" \
+    "cmake(KF6WindowSystem)" \
+    "cmake(Qt6Core)" \
+    "cmake(Qt6DBus)" \
+    "cmake(Qt6Quick)" \
+    "cmake(Qt6Svg)" \
+    "cmake(Qt6Widgets)" \
+    "cmake(Qt6Xml)"
 
 show_progress "Installing Klassy"
 cd /tmp
+TEMP_DIR=$(mktemp -d)
+cd "$TEMP_DIR"
 run_with_progress 4 git clone --depth 1 https://github.com/paulmcauley/klassy.git
 cd klassy
 run_with_progress 12 ./install.sh
 cd /tmp
-run_with_progress 1 sudo rm -rf klassy
+sudo rm -rf "$TEMP_DIR"
 
 show_progress "Installing Tela Circle icons"
 cd /tmp
+TEMP_DIR=$(mktemp -d)
+cd "$TEMP_DIR"
 run_with_progress 4 git clone --depth 1 https://github.com/vinceliuice/Tela-circle-icon-theme.git
 cd Tela-circle-icon-theme
 run_with_progress 8 ./install.sh -a
 cd /tmp
-run_with_progress 1 sudo rm -rf Tela-circle-icon-theme
+sudo rm -rf "$TEMP_DIR"
 
 show_progress "Installing Inter Font"
 cd /tmp
+TEMP_DIR=$(mktemp -d)
+cd "$TEMP_DIR"
 run_with_progress 5 wget -q --show-progress "https://github.com/rsms/inter/releases/download/v4.0/Inter-4.0.zip" -O Inter.zip
 run_with_progress 3 unzip -q Inter.zip -d Inter_font
 run_with_progress 4 sudo mkdir -p /usr/local/share/fonts/Inter
 run_with_progress 6 sudo cp Inter_font/Inter-roman/*.ttf /usr/local/share/fonts/Inter/
 run_with_progress 2 fc-cache -f -v
-run_with_progress 1 rm -rf Inter.zip Inter_font
+cd /tmp
+sudo rm -rf "$TEMP_DIR"
 
 show_progress "Setting up Zsh and fonts"
 run_with_progress 4 sudo dnf install -y zsh dejavu-sans-mono-fonts powerline-fonts
@@ -169,19 +214,25 @@ run_with_progress 1 sh -c 'echo "source ~/powerlevel10k/powerlevel10k.zsh-theme"
 run_with_progress 2 chsh -s $(which zsh)
 
 cd /tmp
+TEMP_DIR=$(mktemp -d)
+cd "$TEMP_DIR"
 run_with_progress 5 git clone --depth 1 https://github.com/ryanoasis/nerd-fonts.git
 cd nerd-fonts
 run_with_progress 6 ./install.sh JetBrainsMono Hack FiraCode
 cd /tmp
-run_with_progress 1 sudo rm -rf nerd-fonts
+sudo rm -rf "$TEMP_DIR"
 
 show_progress "Finalizing configuration"
 run_with_progress 8 sudo dracut -f --regenerate-all
 run_with_progress 4 sudo grub2-mkconfig -o /boot/grub2/grub.cfg
+run_with_progress 2 sudo dnf clean all
 
 if [[ -n "$SPINNER_PID" ]]; then
     kill $SPINNER_PID 2>/dev/null
     wait $SPINNER_PID 2>/dev/null
+fi
+if [[ -n "$KEEPALIVE_PID" ]]; then
+    kill $KEEPALIVE_PID 2>/dev/null
 fi
 
 clear
