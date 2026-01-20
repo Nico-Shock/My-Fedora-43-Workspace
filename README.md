@@ -1,5 +1,7 @@
 [Hi :)](https://nico-shock.github.io/My-Fedora43-Workspace/)
 
+(The Bash scripts are still not working correctly.)
+
 # General Steps
 
 ### Additional Packages Installation
