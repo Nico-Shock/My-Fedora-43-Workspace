@@ -8,10 +8,14 @@ SPINNER_CHARS="⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
 SPINNER_PID=""
 CURRENT_TASK=""
 LOG_FILE="$(dirname "$0")/log.txt"
+KEEPALIVE_PID=""
 
 cleanup() {
     if [[ -n "$SPINNER_PID" ]]; then
         kill $SPINNER_PID 2>/dev/null
+    fi
+    if [[ -n "$KEEPALIVE_PID" ]]; then
+        kill $KEEPALIVE_PID 2>/dev/null
     fi
     printf "\n"
     exit
@@ -48,7 +52,7 @@ show_progress() {
     CURRENT_TASK="$1"
     clear
     echo "╔══════════════════════════════════════════════════════════════╗"
-    echo "║                   Fedora 43 Workspace Setup                    ║"
+    echo "║                  Fedora 43 Workspace Setup                   ║"
     echo "╚══════════════════════════════════════════════════════════════╝"
     echo ""
     printf "📊 Overall Progress: %s/%s\n" "$CURRENT_STEP" "$TOTAL_STEPS"
@@ -85,7 +89,7 @@ run_with_progress() {
 
 clear
 echo "╔══════════════════════════════════════════════════════════════╗"
-echo "║                   Fedora 43 Workspace Setup                    ║"
+echo "║                  Fedora 43 Workspace Setup                   ║"
 echo "╚══════════════════════════════════════════════════════════════╝"
 echo ""
 
@@ -99,6 +103,14 @@ fi
 
 install_nvidia="y"
 > "$LOG_FILE"
+
+sudo -v
+while true; do
+    sudo -n true
+    sleep 60
+    kill -0 "$$" 2>/dev/null || exit
+done &
+KEEPALIVE_PID=$!
 
 show_progress "Installing required tools"
 run_with_progress 3 sudo dnf install -y wget unzip git
@@ -139,47 +151,55 @@ run_with_progress 4 sudo dnf install -y heroic-games-launcher-bin
 
 show_progress "Debloating desktop"
 run_with_progress 8 sudo dnf remove -y gnome-contacts gnome-maps mediawriter totem simple-scan gnome-boxes gnome-user-docs rhythmbox evince gnome-photos gnome-documents gnome-initial-setup yelp winhelp32 dosbox winehelp fedora-release-notes gnome-characters gnome-logs fonts-tweak-tool timeshift epiphany gnome-weather cheese pavucontrol qt5-settings
-run_with_progress 2 sudo dnf clean all
 
 show_progress "Installing Extension Manager"
 run_with_progress 6 sudo flatpak install -y flathub com.mattjakeman.ExtensionManager
 
 show_progress "Installing MacTahoe theme"
 cd /tmp
+TEMP_DIR=$(mktemp -d)
+cd "$TEMP_DIR"
 run_with_progress 4 git clone --depth 1 https://github.com/vinceliuice/MacTahoe-gtk-theme.git
 cd MacTahoe-gtk-theme
 run_with_progress 6 ./install.sh -l
 cd /tmp
-run_with_progress 1 sudo rm -rf MacTahoe-gtk-theme
+sudo rm -rf "$TEMP_DIR"
 
 show_progress "Installing Rose Pine theme"
 cd /tmp
+TEMP_DIR=$(mktemp -d)
+cd "$TEMP_DIR"
 run_with_progress 2 sudo dnf install -y gtk-murrine-engine
 run_with_progress 4 git clone --depth 1 https://github.com/Fausto-Korpsvart/Rose-Pine-GTK-Theme.git
 cd Rose-Pine-GTK-Theme/themes
 run_with_progress 7 ./install.sh -c dark
 cd /tmp
-run_with_progress 1 sudo rm -rf Rose-Pine-GTK-Theme
+sudo rm -rf "$TEMP_DIR"
 
 show_progress "Installing Tela Circle icons"
 cd /tmp
+TEMP_DIR=$(mktemp -d)
+cd "$TEMP_DIR"
 run_with_progress 4 git clone --depth 1 https://github.com/vinceliuice/Tela-circle-icon-theme.git
 cd Tela-circle-icon-theme
 run_with_progress 8 ./install.sh -a
 cd /tmp
-run_with_progress 1 sudo rm -rf Tela-circle-icon-theme
+sudo rm -rf "$TEMP_DIR"
 
 show_progress "Installing Breeze Snow Cursor"
 run_with_progress 5 sudo dnf install -y breeze-cursor-theme
 
 show_progress "Installing Inter Font"
 cd /tmp
+TEMP_DIR=$(mktemp -d)
+cd "$TEMP_DIR"
 run_with_progress 5 wget -q --show-progress "https://github.com/rsms/inter/releases/download/v4.0/Inter-4.0.zip" -O Inter.zip
 run_with_progress 3 unzip -q Inter.zip -d Inter_font
 run_with_progress 4 sudo mkdir -p /usr/local/share/fonts/Inter
 run_with_progress 6 sudo cp Inter_font/Inter-roman/*.ttf /usr/local/share/fonts/Inter/
 run_with_progress 2 fc-cache -f -v
-run_with_progress 1 rm -rf Inter.zip Inter_font
+cd /tmp
+sudo rm -rf "$TEMP_DIR"
 
 show_progress "Setting up Zsh and fonts"
 run_with_progress 4 sudo dnf install -y zsh dejavu-sans-mono-fonts powerline-fonts
@@ -194,19 +214,25 @@ if [[ -n "$PTYXIS_PROFILE" ]]; then
 fi
 
 cd /tmp
+TEMP_DIR=$(mktemp -d)
+cd "$TEMP_DIR"
 run_with_progress 5 git clone --depth 1 https://github.com/ryanoasis/nerd-fonts.git
 cd nerd-fonts
 run_with_progress 6 ./install.sh JetBrainsMono Hack FiraCode
 cd /tmp
-run_with_progress 1 sudo rm -rf nerd-fonts
+sudo rm -rf "$TEMP_DIR"
 
 show_progress "Finalizing configuration"
 run_with_progress 8 sudo dracut -f --regenerate-all
 run_with_progress 4 sudo grub2-mkconfig -o /boot/grub2/grub.cfg
+run_with_progress 2 sudo dnf clean all
 
 if [[ -n "$SPINNER_PID" ]]; then
     kill $SPINNER_PID 2>/dev/null
     wait $SPINNER_PID 2>/dev/null
+fi
+if [[ -n "$KEEPALIVE_PID" ]]; then
+    kill $KEEPALIVE_PID 2>/dev/null
 fi
 
 clear
